@@ -9,6 +9,10 @@ Then, install OCTIP in developer mode (option -e):
 pip install -e octip
 ```
 
+## Models and Data
+
+Models and data can be downloaded from [Dropbox](https://www.dropbox.com/sh/v90m2ic6hm129dw/AACm9uNwOolCYXEyiMES7qVda?dl=0).
+
 ## Usage Example
 
 In the following example, an OCT volume in XML format is parsed and preprocessed: 
