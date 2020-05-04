@@ -87,7 +87,7 @@ class AHNETdataset(Dataset):
         data, label = self.__drop_invalid_range__(data, label)
 
         # crop data
-        data, label = self.__crop_data__(data, label)
+        # data, label = self.__crop_data__(data, label)
 
         # resize data
         data = self.__resize_data__(data)
