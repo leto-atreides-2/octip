@@ -73,15 +73,14 @@ for epoch in range(epoches):
         for img, labels in zip(images, labels_group):
             # calculate losses
             outputs = model(img)
+            n = 0
             for output, label in zip(outputs, labels):
                 output = torch.sigmoid(output.squeeze())
                 losses.append(criterion(output, label.squeeze()))
+                # losses = losses + criterion(output, label.squeeze()).tolist()
+                n += 1
 
-        loss_weight = [0.5, 0.1, 0.1, 0.1, 0.1, 0.1]
-        loss = 0
-        for w, l in zip(loss_weight, losses):
-            # calculate loss for epoch with predefined loss_weight
-            loss += w * l
+        loss = sum(losses) / n
 
         loss.backward()
         optimizer.step()
@@ -106,21 +105,21 @@ for epoch in range(epoches):
                 Test_loss = criterion(output, label.squeeze())
                 losses.append(Test_loss)
     # using tensorboard  to record Loss
-    writer.add_scalar('\\Train/Loss\\',loss.item() ,epoch)
-    writer.add_scalar('\\Train/Loss\\', Test_loss.item(), epoch)
+    writer.add_scalar('_Train/Loss_',loss.item() ,epoch)
+
+    writer.add_scalar('_Train/Loss_', Test_loss.item(), epoch)
     writer.flush()
-    grid = torchvision.utils.make_grid(images)
-    writer.add_image('Dataset input grid ' ,grid ,global_step= 0)
-    writer.close()
+    # grid = torchvision.utils.make_grid(images)
+    # writer.add_image('Dataset input grid ' ,grid ,global_step= 0)
+
 
     # save information in log file
-    logger.info('Epoch:[{}/{}]\t loss={:.5f}\t Test loss={:.5f}'.format(epoch, loss, Test_loss ))
+    # logger.info('Epoch:[{}/{}]\t loss={:.5f}\t Test loss={:.5f}'.format(epoch, loss, Test_loss ))
 
     print("Epoch [%d] Loss: %.4f" % (epoch + 1, running_loss / i))
-    if (epoch + 1) % 20 == 0:
+    if (epoch + 1) % 5 == 0:
         #save the parameters per 20 epoches
 
-        #                             weight_decay=weight_decay)
         torch.save(model.state_dict(), "/home/stage/PycharmProjects/test_3d_ah/pth/fcn-deconv-%d.pth" % (epoch + 1))
-
+    writer.close()
 torch.save(model.state_dict(), "./pth/fcn-deconv.pth")
