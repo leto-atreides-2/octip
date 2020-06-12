@@ -80,6 +80,8 @@ Utilisez une boucle for pour parcourir ces dossiers.
 Effectuer des procédures de prétraitement d'image lors de chaque traversée  
 ```python
 import octip
+import tensorflow as tf
+from keras import backend as K
 n = 0
 for index,nums in enumerate(list_ODOG):
   n = n + 1
@@ -155,10 +157,12 @@ for index,nums in enumerate(list_ODOG):
   # forming the C-scan
   cscan = octip.bscans_to_cscan(bscans, output_directory, '.png')
   print("cscan.shape = ",cscan.shape)
+  np.save('cscan_array',cscan)#把cscan的结果保存在npy文件中，也可以保存为其他形式，例如nii
+  K.clear_session()#为了解决OOM问题
 
   print("当前这组图片处理完毕")#L'ensemble d'images actuel est traité
   ```
-产生的预处理文件会在每组图像文件的octip_data文件中  
+产生的预处理文件会在每组图像文件的octip_data文件，cscan结果会保存在cscan_array.npy文件中  
 Les fichiers prétraités générés seront dans le fichier octip_data de chaque groupe de fichiers images
 
 
