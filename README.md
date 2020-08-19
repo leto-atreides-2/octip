@@ -41,7 +41,7 @@ Of course, the volume's output size can be changed.
 The ground truth associated with each volume is summarized in a CSV file called `ground-truth.csv`.
 The volume-level ground truth derives from the ground truth associated with the selected B-scans.
 
-### Without Retina Segmentation
+### With Retina Segmentation
 
 The following bash command converts each eye exam to a 32x192x224 voxel volume using retina
 segmentation and, optionally, intensity normalization:
