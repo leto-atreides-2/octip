@@ -7,7 +7,7 @@ from __future__ import absolute_import, division, print_function
 __author__ = 'Gwenole Quellec (gwenole.quellec@inserm.fr)'
 __copyright__ = 'Copyright (C) 2020 LaTIM'
 __license__ = 'Proprietary'
-__version__ = '1.0'
+__version__ = '1.1'
 
 import cv2
 import os
