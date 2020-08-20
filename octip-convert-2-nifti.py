@@ -230,7 +230,7 @@ def main():
                     patient_id += 1
 
     # summary
-    with open('summary.md', 'w') as summary:
+    with open('conversion-summary.yml', 'w') as summary:
         print('{} patients found.'.format(patient_id))
         summary.write('num_patients: {}\n'.format(patient_id))
         print('{} eye exams found.'.format(num_exams))
