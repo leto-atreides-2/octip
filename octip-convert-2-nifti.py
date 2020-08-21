@@ -92,7 +92,7 @@ def main():
                         action = 'store_false',
                         help = 'even if a retina segmentation model is provided, '
                                'intensities should not be normalized')
-    parser.set_defaults(normalize_intensities = True)
+    parser.set_defaults(normalize_intensities = False)
     if len(sys.argv[1:]) == 0:
         parser.print_usage()
         parser.exit()
