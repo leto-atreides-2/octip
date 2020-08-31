@@ -17,5 +17,5 @@ setup(name = 'octip',
       author_email = 'gwenole.quellec@inserm.fr, ...',
       packages = ['octip'],
       scripts = ['octip-convert-2-nifti.py', 'octip-dataset-split.py'],
-      install_requires = ['nibabel', 'numpy', 'opencv-python', 'pandas', 'scikit-learn', 'scipy',
-                          'segmentation-models'])
+      install_requires = ['nibabel', 'numpy', 'opencv-python', 'pandas', 'pydicom', 'scikit-learn',
+                          'scipy', 'segmentation-models'])
