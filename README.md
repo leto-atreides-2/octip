@@ -7,9 +7,13 @@ dataset path :
 cd /data_GPU/wenpei/script/octip/EtudeOCTBrest/
 
 ```
+names and labels of datas are saved in dataset_label.txt
+
 
 train set list: ``` bash  /data_GPU/wenpei/script/octip/train_label.txt```
+
 valid set list: ``` bash  /data_GPU/wenpei/script/octip/valid_label.txt```
+
 test set  list: ``` bash  /data_GPU/wenpei/script/octip/test_label.txt```
 
 
