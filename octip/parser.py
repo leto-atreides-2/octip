@@ -38,13 +38,23 @@ class PLEXEliteParser(object):
     Parses a PLEXElite eye exam in DICOM format.
     """
 
-    _file_type = {'1.2.276.0.75.2.2.44.6': PLEXEliteFileType.STRUCTURE_CUBE,
-                  '1.2.276.0.75.2.2.44.15': PLEXEliteFileType.FLOW_CUBE,
-                  '1.2.276.0.75.2.2.44.4': PLEXEliteFileType.RETRACE_OCT_FRAMES,
-                  '1.2.276.0.75.2.2.44.3': PLEXEliteFileType.NOISE_FRAME,
-                  '1.2.276.0.75.2.2.44.1': PLEXEliteFileType.LSO_IMAGE,
-                  '1.2.276.0.75.2.2.44.2': PLEXEliteFileType.IRIS_IMAGE,
-                  '1.2.276.0.75.2.2.44.10': PLEXEliteFileType.ENFACE_IMAGE}
+    _file_types = {'1.2.276.0.75.2.2.44.6': PLEXEliteFileType.STRUCTURE_CUBE,
+                   '1.2.276.0.75.2.2.44.15': PLEXEliteFileType.FLOW_CUBE,
+                   '1.2.276.0.75.2.2.44.4': PLEXEliteFileType.RETRACE_OCT_FRAMES,
+                   '1.2.276.0.75.2.2.44.3': PLEXEliteFileType.NOISE_FRAME,
+                   '1.2.276.0.75.2.2.44.1': PLEXEliteFileType.LSO_IMAGE,
+                   '1.2.276.0.75.2.2.44.2': PLEXEliteFileType.IRIS_IMAGE,
+                   '1.2.276.0.75.2.2.44.10': PLEXEliteFileType.ENFACE_IMAGE}
+
+    _segmentation_elements = {'ILM_Layer': 0x1150, 'RPE_Layer': 0x1155,
+                              'RPE_Fit_Layer': 0x1160, 'RNFL_Layer': 0x1165,
+                              'ILM_Layer_MLS': 0x1510, 'RNFL_Layer_MLS': 0x1515,
+                              'IPL_Layer_MLS': 0x1520, 'INL_Layer_MLS': 0x1525,
+                              'OPL_Layer_MLS': 0x1530, 'IS_OS_Layer_MLS': 0x1535,
+                              'RPE_Layer_MLS': 0x1540, 'RPE_Fit_Layer_MLS': 0x1545,
+                              'BM_Layer_MLS': 0x1550, 'CSJ_Layer_MLS': 0x1555,
+                              'ILM_TOMTEC_Layer': 0x1190, 'IPL_Layer': 0x1290,
+                              'OPL_Layer': 0x1295}
 
     def __init__(self,
                  directory):
@@ -114,9 +124,9 @@ class PLEXEliteParser(object):
         if isinstance(czm_iod_uid_file_type, list) and len(czm_iod_uid_file_type) > 0:
             czm_iod_uid_file_type = czm_iod_uid_file_type[0]
         if isinstance(czm_iod_uid_file_type, str):
-            for key in cls._file_type:
+            for key in cls._file_types:
                 if czm_iod_uid_file_type.startswith(key):
-                    return cls._file_type[key]
+                    return cls._file_types[key]
         return PLEXEliteFileType.ANALYSIS_FILE
 
     def load_images(self,
@@ -162,13 +172,39 @@ class PLEXEliteParser(object):
                     frame_size = dimensions[1] * dimensions[2]
                     frames = []
                     for num_frame in range(dimensions[0]):
-                        data_ptr = padding_by_frame * (num_frame + 1) + frame_size * num_frame
+                        data_ptr = padding_by_frame * (num_frame + 2) + frame_size * num_frame
                         data = pixel_data[data_ptr: data_ptr + frame_size]
-                        frames.append(np.reshape(np.frombuffer(data, dtype = np.uint8),
-                                                 [dimensions[1], dimensions[2]]))
+                        frame = np.reshape(np.frombuffer(data, dtype = np.uint8),
+                                           [dimensions[1], dimensions[2]])
+                        frames.append(np.transpose(frame))
                     images.append(np.array(frames))
 
         return images
+
+    def load_segmentations(self,
+                           segmentation_type,
+                           num_frames):
+        """
+        Loads segmentations from analysis files.
+
+        :param segmentation_type: type of segmentation
+        :param num_frames: number of B-scans in the structure and/or flow cubes
+
+        :return: a list of segmentations
+        """
+        element = self._segmentation_elements[segmentation_type]
+        segmentations = []
+        for file_type in self.datasets:
+            datasets = self.datasets[file_type]
+            for dataset in datasets:
+                try:
+                    segmentation = dataset[0x73, element].value
+                    segmentation = np.reshape(np.frombuffer(segmentation, dtype = np.int16),
+                                              [num_frames, -1])
+                    segmentations.append(segmentation)
+                except Exception:
+                    pass
+        return segmentations
 
 
 class XMLParser(object):
