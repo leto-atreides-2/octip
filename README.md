@@ -1,4 +1,4 @@
-# OCTIP: traine
+# OCTIP: trainer
 
 dataset path :
 
