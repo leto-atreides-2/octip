@@ -84,8 +84,8 @@ def main():
         # summing intensities in the range
         min_z = np.round(ilm_segmentation + lb * delta)
         max_z = np.round(ilm_segmentation + ub * delta)
-        min_z = np.clip(min_z, 0, num_rows).astype(np.int32)
         max_z = np.clip(max_z, min_z, num_rows).astype(np.int32)
+        min_z = np.clip(min_z - 1, 0, num_rows).astype(np.int32)
         sum = cumulative_sum[idx[0], np.reshape(max_z, [num_frames, 1, num_cols]), idx[2]] \
             - cumulative_sum[idx[0], np.reshape(min_z, [num_frames, 1, num_cols]), idx[2]]
         sum = np.reshape(sum, [num_frames, num_cols])
