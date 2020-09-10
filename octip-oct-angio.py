@@ -18,15 +18,9 @@ import sys
 from argparse import ArgumentParser
 
 
-def single_element(input_list,
-                   name):
-    assert len(input_list) == 1, 'no {} or more than one'.format(name)
-    return input_list[0]
-
-
 def main():
     """
-    Converts Brest's OCT dataset in compressed NifTI format.
+    Generates 2-D angiograms from PLEXElite data.
     """
 
     # parsing the command line
@@ -59,6 +53,11 @@ def main():
             ubs.append(cutoff)
     for lb, ub in zip(lbs, ubs):
         assert lb <= ub, 'lower bounds must be lower than upper bounds in ranges...'
+
+    # function for unpacking one element in a list
+    def single_element(input_list, name):
+        assert len(input_list) == 1, 'no {} or more than one'.format(name)
+        return input_list[0]
 
     # parsing the inputs
     parser = octip.PLEXEliteParser(args.input_dir)
