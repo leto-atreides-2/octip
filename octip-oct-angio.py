@@ -56,7 +56,8 @@ def main():
 
     # function for unpacking one element in a list
     def single_element(input_list, name):
-        assert len(input_list) == 1, 'no {} or more than one'.format(name)
+        assert len(input_list) > 0, 'no {}'.format(name)
+        assert len(input_list) < 2, 'more than one {}'.format(name)
         return input_list[0]
 
     # parsing the inputs

@@ -56,6 +56,14 @@ class PLEXEliteParser(object):
                               'ILM_TOMTEC_Layer': 0x1190, 'IPL_Layer': 0x1290,
                               'OPL_Layer': 0x1295}
 
+    _tags = {'CZM_IOD_UID__file_type_': (0x57, 0x1),
+             'SOPInstanceUID': (0x8, 0x18),
+             'NumberOfFrames': (0x28, 0x8),
+             'Rows': (0x28, 0x10),
+             'Columns': (0x28, 0x11),
+             'PixelData': (0x7fe0, 0x10),
+             'StudyDate': (0x8, 0x20)}
+
     def __init__(self,
                  directory):
         """
@@ -66,10 +74,13 @@ class PLEXEliteParser(object):
         dicoms = glob.glob(os.path.join(directory, '*.DCM'))
         self.datasets = defaultdict(list)
         for dicom in dicoms:
-            dataset = pydicom.dcmread(dicom)
-            if PLEXEliteParser.__check_plex_elite(dataset):
-                file_type = PLEXEliteParser.__file_type(dataset)
-                self.datasets[file_type].append(dataset)
+            try:
+                dataset = pydicom.dcmread(dicom)
+                if PLEXEliteParser.__check_plex_elite(dataset):
+                    file_type = PLEXEliteParser.__file_type(dataset)
+                    self.datasets[file_type].append(dataset)
+            except AttributeError:
+                print('Error loading file\'{}\'...'.format(dicom))
 
     @staticmethod
     def __check_plex_elite(dataset):
@@ -80,7 +91,7 @@ class PLEXEliteParser(object):
 
         :return: whether or not the dataset was acquired by a PLEXElite
         """
-        sop_instance_uid = dataset[0x8, 0x18].value
+        sop_instance_uid = dataset[PLEXEliteParser._tags['SOPInstanceUID']].value
         if isinstance(sop_instance_uid, list) and len(sop_instance_uid) > 0:
             sop_instance_uid = sop_instance_uid[0]
         if isinstance(sop_instance_uid, str):
@@ -90,23 +101,26 @@ class PLEXEliteParser(object):
 
     @staticmethod
     def __dimension(dataset,
-                    group,
-                    element):
+                    tag):
         """
         Gets one dimension of an image dataset identified by the (group, element) tag.
 
         :param dataset: image dataset
-        :param group: tag group
-        :param element: tag element in the group
+        :param tag: tag
 
         :return: the value of the dimension (1 if not found)
         """
         try:
-            value = dataset[group, element].value
+            value = dataset[PLEXEliteParser._tags[tag]].value
             if isinstance(value, str):
-                value = ''.join(filter(str.isdigit, value))
-            value = int(value)
-            return value
+                digits = []
+                for c in value:
+                    if str.isdigit(c):
+                        digits.append(c)
+                    else:
+                        break
+                value = ''.join(digits)
+            return int(value)
         except Exception:
             return 1
 
@@ -120,7 +134,7 @@ class PLEXEliteParser(object):
 
         :return: the file type (PLEXEliteFileType)
         """
-        czm_iod_uid_file_type = dataset[0x57, 0x1].value
+        czm_iod_uid_file_type = dataset[PLEXEliteParser._tags['CZM_IOD_UID__file_type_']].value
         if isinstance(czm_iod_uid_file_type, list) and len(czm_iod_uid_file_type) > 0:
             czm_iod_uid_file_type = czm_iod_uid_file_type[0]
         if isinstance(czm_iod_uid_file_type, str):
@@ -142,11 +156,14 @@ class PLEXEliteParser(object):
         if file_type in self.datasets:
             datasets = self.datasets[file_type]
             for dataset in datasets:
+                date = pydicom.valuerep.DT(dataset[PLEXEliteParser._tags['StudyDate']].value) \
+                    .date().isoformat()
+                print('Study date: {}'.format(date))
 
-                # size of the data ([NumberOfFrames, Rows, Columns])
-                dimensions = [PLEXEliteParser.__dimension(dataset, 0x28, 0x8)] + \
-                             [PLEXEliteParser.__dimension(dataset, 0x28, 0x10)] + \
-                             [PLEXEliteParser.__dimension(dataset, 0x28, 0x11)]
+                # size of the data
+                dimensions = [PLEXEliteParser.__dimension(dataset, 'NumberOfFrames'),
+                              PLEXEliteParser.__dimension(dataset, 'Rows'),
+                              PLEXEliteParser.__dimension(dataset, 'Columns')]
                 num_dimensions = 0
                 for d in dimensions:
                     if d > 1:
@@ -161,7 +178,7 @@ class PLEXEliteParser(object):
                 elif num_dimensions == 3:
 
                     # pixel data
-                    pixel_data = dataset[0x7fe0, 0x10].value
+                    pixel_data = dataset[PLEXEliteParser._tags['PixelData']].value
                     actual_size = len(pixel_data)
 
                     # padding info
