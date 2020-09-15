@@ -80,7 +80,7 @@ class PLEXEliteParser(object):
                     file_type = PLEXEliteParser.__file_type(dataset)
                     self.datasets[file_type].append(dataset)
             except AttributeError:
-                print('Error loading file\'{}\'...'.format(dicom))
+                print('Error loading file \'{}\'...'.format(dicom))
 
     @staticmethod
     def __check_plex_elite(dataset):
@@ -186,15 +186,11 @@ class PLEXEliteParser(object):
                     padding_by_frame = int(padding / (dimensions[0] + 1))
 
                     # forming the 3-D array
-                    frame_size = dimensions[1] * dimensions[2]
-                    frames = []
-                    for num_frame in range(dimensions[0]):
-                        data_ptr = padding_by_frame * (num_frame + 2) + frame_size * num_frame
-                        data = pixel_data[data_ptr: data_ptr + frame_size]
-                        frame = np.reshape(np.frombuffer(data, dtype = np.uint8),
-                                           [dimensions[1], dimensions[2]])
-                        frames.append(np.transpose(frame))
-                    images.append(np.array(frames))
+                    frame_stride = dimensions[1] * dimensions[2] + padding_by_frame
+                    data = np.frombuffer(pixel_data[2 * padding_by_frame:], dtype = np.uint8)
+                    data = np.lib.stride_tricks.as_strided(
+                        data, shape = dimensions, strides = (frame_stride, dimensions[2], 1))
+                    images.append(np.transpose(data, (0, 2, 1)))
 
         return images
 

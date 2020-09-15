@@ -16,6 +16,7 @@ setup(name = 'octip',
       author = 'Gwenole Quellec, ...',
       author_email = 'gwenole.quellec@inserm.fr, ...',
       packages = ['octip'],
-      scripts = ['octip-convert-2-nifti.py', 'octip-dataset-split.py', 'octip-oct-angio.py'],
+      scripts = ['octip-convert-2-nifti.py', 'octip-dataset-split.py', 'octip-oct-angio.py',
+                 'octip-plexelite-2-nifti.py'],
       install_requires = ['nibabel', 'numpy', 'opencv-python', 'pandas', 'pydicom', 'scikit-learn',
                           'scipy', 'segmentation-models'])
