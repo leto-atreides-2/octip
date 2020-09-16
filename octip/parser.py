@@ -190,7 +190,7 @@ class PLEXEliteParser(object):
                     data = np.frombuffer(pixel_data[2 * padding_by_frame:], dtype = np.uint8)
                     data = np.lib.stride_tricks.as_strided(
                         data, shape = dimensions, strides = (frame_stride, dimensions[2], 1))
-                    images.append(np.transpose(data, (0, 2, 1)))
+                    images.append(np.flip(np.transpose(data, (0, 2, 1)), axis = 0))
 
         return images
 

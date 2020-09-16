@@ -1,5 +1,5 @@
 """
-OCTIP script for converting Brest's OCT dataset in compressed NifTI format.
+OCTIP script for converting Brest's OCT dataset (Spectralis) in compressed NifTI format.
 """
 
 from __future__ import absolute_import, division, print_function
@@ -63,17 +63,19 @@ def resize_images(args,
 
 def main():
     """
-    Converts Brest's OCT dataset in compressed NifTI format.
+    Converts Brest's OCT dataset (Spectralis) in compressed NifTI format.
     """
 
     # parsing the command line
     parser = ArgumentParser(
-        description = 'Converts Brest\'s OCT dataset in compressed NifTI format.')
-    parser.add_argument('-i', '--image_dir', default = 'resized_images',
-                        help = 'directory containing selected and resized 2-D images '
-                               '(can be safely removed at the end of this script)')
+        description = 'Converts Brest\'s OCT dataset (Spectralis) in compressed NifTI format.')
+    parser.add_argument('-i', '--input_dirs', required = True, nargs = '+',
+                        help = 'space-delimited list of input directories')
     parser.add_argument('-v', '--volume_dir', default = 'volumes',
                         help = 'directory containing volumes in compressed NifTI format')
+    parser.add_argument('--image_dir', default = 'resized_images',
+                        help = 'directory containing selected and resized 2-D images '
+                               '(can be safely removed at the end of this script)')
     parser.add_argument('-g', '--ground_truth', default = 'ground-truth.csv',
                         help = 'CSV file containing the labels')
     parser.add_argument('--depth', type = int, default = 32,
@@ -82,8 +84,6 @@ def main():
     parser.add_argument('--width', type = int, default = 512, help = 'image width after resizing')
     parser.add_argument('-r', '--retina_model_dir', default = None,
                         help = 'directory containing retina segmentation models')
-    parser.add_argument('--input_dirs', required = True, nargs = '+',
-                        help = 'space-delimited list of input directories')
     parser.add_argument('--normalize_intensities', dest = 'normalize_intensities',
                         action = 'store_true',
                         help = 'if a retina segmentation model is provided, '

@@ -15,7 +15,7 @@ pip install -e octip
 ## Usage Examples
 
 The latter version of OCTIP comes with two scripts:
-* `octip-convert-2-nifti.py` converts Brest's OCT dataset in compressed NifTI format,
+* `octip-spectralis-2-nifti.py` converts Brest's OCT dataset (Spectralis) in compressed NifTI format,
 * `octip-dataset-split.py` splits the converted dataset into train, validation and test subsets.
 
 First download the `OCT_Images` and `OCT_Non_Interprete` directories from `synophta3`
@@ -33,7 +33,7 @@ generally `depth`x`height`x`width` voxels) by:
 identifier and `<y>` identifies one exam of one eye of the patient.
 
 ```bash
-octip-convert-2-nifti.py --depth 32 --height 224 --width 224 --input_dirs ../OCT_Images ../OCT_Non_Interprete
+octip-spectralis-2-nifti.py --depth 32 --height 224 --width 224 --input_dirs ../OCT_Images ../OCT_Non_Interprete
 ```
 
 Note that the 32 B-scans are selected as follows:
@@ -50,7 +50,7 @@ The following bash command converts each eye exam to a volume of 32x192x224 voxe
 `depth`x`height`x`width` voxels) using retina segmentation:
 
 ```bash
-CUDA_VISIBLE_DEVICES=0 octip-convert-2-nifti.py -r octip_models --depth 32 --height 192 --width 224 \
+CUDA_VISIBLE_DEVICES=0 octip-spectralis-2-nifti.py -r octip_models --depth 32 --height 192 --width 224 \
     --input_dirs ../OCT_Images ../OCT_Non_Interprete
 ```
 
