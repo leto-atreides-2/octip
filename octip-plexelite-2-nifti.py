@@ -17,6 +17,7 @@ import octip
 import os
 import sys
 from argparse import ArgumentParser
+from scipy import ndimage
 
 
 def main():
@@ -36,6 +37,10 @@ def main():
                                '(can be safely removed at the end of this script)')
     parser.add_argument('-d', '--depth_selection', default = 1., type = float,
                         help = 'Percentage of the depth that is selected')
+    parser.add_argument('-D', '--output_depth', default = None, type = int,
+                        help = 'Output depth (no resizing in depth by default)')
+    parser.add_argument('-l', '--rpe_layer', default = 'None',
+                        help = 'If RPE layer (RPE_Layer or RPE_Fit_Layer) provided, zero below')
     if len(sys.argv[1:]) == 0:
         parser.print_usage()
         parser.exit()
@@ -79,13 +84,25 @@ def main():
                             flow_volume.shape[1], flow_volume.shape[2]
                         ilm_segmentation = single_element(
                             parser.load_segmentations('ILM_Layer', num_frames), 'ILM segmentation')
+                        rpe_segmentation = single_element(
+                            parser.load_segmentations(args.rpe_layer, num_frames),
+                            'RPE segmentation') if args.rpe_layer is not None else None
                     except Exception as err:
                         #print('Error acquisition \'{}\'...'.format(acquisition, err))
                         continue
 
+                    # voxel coordinates
+                    x, y, z = np.ix_(range(num_frames), range(num_rows), range(num_cols))
+
+                    # masking out the choroid if RPE segmentation is specified
+                    if rpe_segmentation is not None:
+                        mask = np.zeros_like(flow_volume, dtype = flow_volume.dtype)
+                        mask[np.where(y <= rpe_segmentation[:, np.newaxis, :])] = 1
+                        flow_volume = flow_volume * mask
+                        structure_volume = structure_volume * mask
+
                     # shifting A-scan indices
                     shift = num_rows - ilm_segmentation
-                    x, y, z = np.ix_(range(num_frames), range(num_rows), range(num_cols))
                     y = y - shift[:, np.newaxis, :]
                     depth = int(num_rows * args.depth_selection) \
                         if args.depth_selection < 1. else None
@@ -102,15 +119,26 @@ def main():
                     structure_volume = extract(structure_volume)
                     sub_volumes = np.concatenate([flow_volume, structure_volume], axis = 3)
 
+                    # resizing in depth if requested
+                    if args.output_depth is not None:
+                        eps = 1e-7
+                        scale = (args.output_depth + eps) / sub_volumes.shape[1]
+                        sub_volumes = ndimage.zoom(sub_volumes, zoom = [1., scale, 1., 1.],
+                                                   order = 1)
+                        if sub_volumes.shape[1] > args.output_depth:
+                            trim = (sub_volumes.shape[1] - args.output_depth) // 2
+                            sub_volumes = sub_volumes[:, trim:trim + args.output_depth, :, :]
+
                     # saving as images
                     if args.image_dir:
                         output_dir = os.path.join(args.image_dir, volume_name)
                         if not os.path.exists(output_dir):
                             os.makedirs(output_dir)
                         for i in range(num_frames):
-                            image = np.concatenate([flow_volume[i], structure_volume[i]], axis = 1)
+                            image = np.concatenate([sub_volumes[i, :, :, 0],
+                                                    sub_volumes[i, :, :, 1]], axis = 1)
                             cv2.imwrite(os.path.join(output_dir, 'frame{}.png'.format(i)),
-                                        image[:, :, 0])
+                                        image[:, :])
 
                     # saving the volume
                     img = nib.Nifti1Image(sub_volumes, np.eye(4))
