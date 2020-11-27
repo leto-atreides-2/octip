@@ -57,6 +57,8 @@ def main():
         return input_list[0]
 
     # loop on studies
+    with open('laterality.csv', 'w') as f:
+        f.write('url,laterality\n')
     total_num_acquisitions = 0
     for main_dir in args.input_dirs:
         for exam in glob.glob(os.path.join(main_dir, '*')):
@@ -72,8 +74,8 @@ def main():
                     # parsing the inputs
                     try:
                         parser = octip.PLEXEliteParser(acquisition_dir)
-                        flow_volume = single_element(
-                            parser.load_images(octip.PLEXEliteFileType.FLOW_CUBE),
+                        flow_volume, laterality = single_element(
+                            parser.load_images(octip.PLEXEliteFileType.FLOW_CUBE, True),
                             'flow volume')
                         structure_volume = single_element(
                             parser.load_images(octip.PLEXEliteFileType.STRUCTURE_CUBE),
@@ -87,6 +89,7 @@ def main():
                         rpe_segmentation = single_element(
                             parser.load_segmentations(args.rpe_layer, num_frames),
                             'RPE segmentation') if args.rpe_layer is not None else None
+                        print('Laterality: "{}"'.format(laterality))
                     except Exception as err:
                         #print('Error acquisition \'{}\'...'.format(acquisition, err))
                         continue
@@ -143,6 +146,10 @@ def main():
                     # saving the volume
                     img = nib.Nifti1Image(sub_volumes, np.eye(4))
                     nib.save(img, os.path.join(args.volume_dir, volume_name + '.nii.gz'))
+
+                    # saving laterality
+                    with open('laterality.csv', 'a') as f:
+                        f.write('{},{}\n'.format(os.path.basename(volume_name + '.nii.gz'), laterality))
 
                     num_valid_acquisitions += 1
                 total_num_acquisitions += num_valid_acquisitions

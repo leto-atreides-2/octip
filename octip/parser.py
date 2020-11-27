@@ -62,7 +62,8 @@ class PLEXEliteParser(object):
              'Rows': (0x28, 0x10),
              'Columns': (0x28, 0x11),
              'PixelData': (0x7fe0, 0x10),
-             'StudyDate': (0x8, 0x20)}
+             'StudyDate': (0x8, 0x20),
+             'Laterality': (0x20, 0x60)}
 
     def __init__(self,
                  directory):
@@ -144,13 +145,15 @@ class PLEXEliteParser(object):
         return PLEXEliteFileType.ANALYSIS_FILE
 
     def load_images(self,
-                    file_type):
+                    file_type,
+                    with_laterality = False):
         """
         Loads images from datasets with a given file type.
 
         :param file_type: the file type (PLEXEliteFileType)
+        :param with_laterality: return laterality as well?
 
-        :return: a list of images
+        :return: a list of images, optionally with the laterality
         """
         images = []
         if file_type in self.datasets:
@@ -159,6 +162,7 @@ class PLEXEliteParser(object):
                 date = pydicom.valuerep.DT(dataset[PLEXEliteParser._tags['StudyDate']].value) \
                     .date().isoformat()
                 print('Study date: {}'.format(date))
+                laterality = dataset[PLEXEliteParser._tags['Laterality']].value[:2]
 
                 # size of the data
                 dimensions = [PLEXEliteParser.__dimension(dataset, 'NumberOfFrames'),
@@ -170,10 +174,11 @@ class PLEXEliteParser(object):
                         num_dimensions += 1
                 theoretical_size = np.prod(dimensions)
 
+                image = None
                 if num_dimensions == 2:
 
                     # cloning the 2-D array
-                    images.append(np.copy(dataset.pixel_array))
+                    image = np.copy(dataset.pixel_array)
 
                 elif num_dimensions == 3:
 
@@ -190,7 +195,10 @@ class PLEXEliteParser(object):
                     data = np.frombuffer(pixel_data[2 * padding_by_frame:], dtype = np.uint8)
                     data = np.lib.stride_tricks.as_strided(
                         data, shape = dimensions, strides = (frame_stride, dimensions[2], 1))
-                    images.append(np.flip(np.transpose(data, (0, 2, 1)), axis = 0))
+                    image = np.flip(np.transpose(data, (0, 2, 1)), axis = 0)
+
+                if image is not None:
+                    images.append((image, laterality) if with_laterality else image)
 
         return images
 
