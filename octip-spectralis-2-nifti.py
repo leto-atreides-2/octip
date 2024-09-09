@@ -1,5 +1,5 @@
 """
-OCTIP script for converting Brest's OCT dataset (Spectralis) in compressed NifTI format.
+OCTIP script for converting Spectralis OCT dataset in compressed NifTI format.
 """
 
 from __future__ import absolute_import, division, print_function
@@ -19,13 +19,6 @@ import pandas as pd
 import sys
 from argparse import ArgumentParser
 from collections import defaultdict
-
-labels = ['Drusens', 'AEP', 'DSR', 'DEP', 'SHE', 'AG', 'Logettes', 'AER', 'Exsudats', 'MER', 'TM',
-          'TVM', 'Autres Lésions', 'MLA', 'DMLA E', 'DMLA A', 'OMC diabètique', 'OMC', 'IVM',
-          'Autres patho']
-clean_labels = ['drusen', 'AEP', 'DSR', 'DEP', 'SHE', 'AG', 'logettes', 'AER', 'exsudats', 'MER',
-                'TM', 'TVM', 'autres-lesions', 'MLA', 'DMLA-E', 'DMLA-A', 'OMC-diabetique', 'OMC',
-                'IVM', 'autres-pathologies']
 
 
 def resize_images(args,
@@ -63,12 +56,12 @@ def resize_images(args,
 
 def main():
     """
-    Converts Brest's OCT dataset (Spectralis) in compressed NifTI format.
+    Converts Spectralis OCT dataset in compressed NifTI format.
     """
 
     # parsing the command line
     parser = ArgumentParser(
-        description = 'Converts Brest\'s OCT dataset (Spectralis) in compressed NifTI format.')
+        description = 'Converts Spectralis OCT dataset in compressed NifTI format.')
     parser.add_argument('-i', '--input_dirs', required = True, nargs = '+',
                         help = 'space-delimited list of input directories')
     parser.add_argument('-v', '--volume_dir', default = 'volumes',
@@ -76,8 +69,6 @@ def main():
     parser.add_argument('--image_dir', default = 'resized_images',
                         help = 'directory containing selected and resized 2-D images '
                                '(can be safely removed at the end of this script)')
-    parser.add_argument('-g', '--ground_truth', default = 'ground-truth.csv',
-                        help = 'CSV file containing the labels')
     parser.add_argument('--depth', type = int, default = 32,
                         help = 'number of images selected per volume')
     parser.add_argument('--height', type = int, default = 496, help = 'image height after resizing')
@@ -113,121 +104,95 @@ def main():
 
     # loop over patients
     patient_id, num_exams = 0, 0
-    num_labels = defaultdict(int)
-    with open(args.ground_truth, 'w') as ground_truth:
-        ground_truth.write(','.join(['urls', 'normal'] + clean_labels) + '\n')
-        for main_dir in args.input_dirs:
-            for patient in glob.glob(os.path.join(main_dir, '*')):
-                excel_files = glob.glob(os.path.join(patient, '**', '*.xlsx'), recursive = True)
-                if len(excel_files) == 0:
+    for main_dir in args.input_dirs:
+        for patient in glob.glob(os.path.join(main_dir, '*')):
+            xml_files = glob.glob(os.path.join(patient, '**', '*.xml'), recursive = True)
+            eye_exams = [os.path.split(xml_file)[0] for xml_file in xml_files]
+            eye_exams = list(set(eye_exams))
+            if len(eye_exams) == 0:
+                continue
+            print('Processing patient {}...'.format(patient))
+
+            # loop over eye exams
+            eye_exam_id = 0
+            for eye_exam in eye_exams:
+                volume_name = os.path.relpath(eye_exam, main_dir).replace(os.sep, '_')
+
+                # selecting images
+                images = glob.glob(os.path.join(eye_exam, '*.bmp')) + \
+                      glob.glob(os.path.join(eye_exam, '*.png'))
+                base_names = [os.path.basename(image) for image in images]
+                image_ids = [int(base_name.split('.')[0]) for base_name in base_names]
+                base_names = [x for _, x in sorted(zip(image_ids, base_names))]
+                if os.path.splitext(base_names[0])[0] == '0':  # localizer
+                    base_names = base_names[1:]
+                if len(base_names) == 0:
                     continue
-                print('Processing patient {}...'.format(patient))
+                if len(base_names) < args.depth:
+                    delta = args.depth - len(base_names)
+                    left = delta // 2
+                    right = delta - left
+                    selected_base_names = [None] * left + base_names + [None] * right
+                elif len(base_names) > args.depth:
+                    selected_base_names = []
+                    for i in range(args.depth):
+                        proportion = float(i) / (args.depth - 1)
+                        idx = round(proportion * (len(base_names) - 1))
+                        selected_base_names.append(base_names[idx])
+                else:
+                    selected_base_names = base_names
 
-                # loop over eye exams
-                eye_exam_id = 0
-                for excel_file in excel_files:
-                    eye_exam = os.path.split(excel_file)[0]
-                    volume_name = 'patient{}-eye-exam{}'.format(patient_id, eye_exam_id)
+                # resizing images
+                exam_image_dir = os.path.join(args.image_dir, volume_name)
+                if not os.path.exists(exam_image_dir):
+                    os.makedirs(exam_image_dir)
+                if args.retina_model_dir is not None:
 
-                    # selecting images
-                    images = glob.glob(os.path.join(eye_exam, '*.bmp'))
-                    base_names = [os.path.basename(image) for image in images]
-                    image_ids = [int(base_name.split('.')[0]) for base_name in base_names]
-                    base_names = [x for _, x in sorted(zip(image_ids, base_names))]
-                    if base_names[0] == '0.bmp':
-                        base_names = base_names[1:]
-                    if len(base_names) == 0:
-                        continue
-                    if len(base_names) < args.depth:
-                        delta = args.depth - len(base_names)
-                        left = delta // 2
-                        right = delta - left
-                        selected_base_names = [None] * left + base_names + [None] * right
-                    elif len(base_names) > args.depth:
-                        selected_base_names = []
-                        for i in range(args.depth):
-                            proportion = float(i) / (args.depth - 1)
-                            idx = round(proportion * (len(base_names) - 1))
-                            selected_base_names.append(base_names[idx])
-                    else:
-                        selected_base_names = base_names
+                    # selecting non-empty images
+                    bscans = []
+                    for url in selected_base_names:
+                        if url is not None:
+                            bscans.append(os.path.join(eye_exam, url))
 
-                    # converting annotations
-                    data = pd.read_excel(excel_file)
-                    urls = data['NomImage'].values.tolist()
-                    normal = True
-                    diagnoses = []
-                    for label, clean_label in zip(labels, clean_labels):
-                        bscan_labels = dict(zip(urls, data[label].values.tolist()))
-                        positive = False
-                        for url in selected_base_names:
-                            if url is not None:
-                                diagnosis = bscan_labels[url]
-                                if diagnosis:
-                                    positive = True
-                                    break
-                        if positive:
-                            num_labels[clean_label] += 1
-                            normal = False
-                            diagnoses.append('1')
-                        else:
-                            diagnoses.append('0')
-                    if normal:
-                        num_labels['normal'] += 1
-                    ground_truth.write(','.join([volume_name + '.nii.gz',
-                                                 '1' if normal else '0'] + diagnoses) + '\n')
+                    # segmenting and preprocessing images
+                    segmentation_directory_1 = os.path.join(exam_image_dir, 'segmentation1')
+                    segmentation_directory_2 = os.path.join(exam_image_dir, 'segmentation2')
+                    preprocessed_dir = os.path.join(exam_image_dir, 'preprocessed')
+                    if not os.path.exists(segmentation_directory_1):
+                        os.makedirs(segmentation_directory_1)
+                    if not os.path.exists(segmentation_directory_2):
+                        os.makedirs(segmentation_directory_2)
+                    if not os.path.exists(preprocessed_dir):
+                        os.makedirs(preprocessed_dir)
+                    localizer1(octip.RetinaLocalizationDataset(bscans, 4, localizer1),
+                               segmentation_directory_1)
+                    localizer2(octip.RetinaLocalizationDataset(bscans, 4, localizer2),
+                               segmentation_directory_2)
+                    preprocessor = octip.PreProcessor(
+                        args.height, min_height = 100,
+                        normalize_intensities = args.normalize_intensities)
+                    preprocessor(bscans, [segmentation_directory_1, segmentation_directory_2],
+                                 preprocessed_dir)
+
+                    # resizing preprocessed images
+                    volume = resize_images(args, selected_base_names, preprocessed_dir,
+                                           exam_image_dir, True)
+
+                else:
 
                     # resizing images
-                    exam_image_dir = os.path.join(args.image_dir, volume_name)
-                    if not os.path.exists(exam_image_dir):
-                        os.makedirs(exam_image_dir)
-                    if args.retina_model_dir is not None:
+                    volume = resize_images(args, selected_base_names, eye_exam, exam_image_dir)
 
-                        # selecting non-empty images
-                        bscans = []
-                        for url in selected_base_names:
-                            if url is not None:
-                                bscans.append(os.path.join(eye_exam, url))
+                volume = np.asarray(volume)
 
-                        # segmenting and preprocessing images
-                        segmentation_directory_1 = os.path.join(exam_image_dir, 'segmentation1')
-                        segmentation_directory_2 = os.path.join(exam_image_dir, 'segmentation2')
-                        preprocessed_dir = os.path.join(exam_image_dir, 'preprocessed')
-                        if not os.path.exists(segmentation_directory_1):
-                            os.makedirs(segmentation_directory_1)
-                        if not os.path.exists(segmentation_directory_2):
-                            os.makedirs(segmentation_directory_2)
-                        if not os.path.exists(preprocessed_dir):
-                            os.makedirs(preprocessed_dir)
-                        localizer1(octip.RetinaLocalizationDataset(bscans, 4, localizer1),
-                                   segmentation_directory_1)
-                        localizer2(octip.RetinaLocalizationDataset(bscans, 4, localizer2),
-                                   segmentation_directory_2)
-                        preprocessor = octip.PreProcessor(
-                            args.height, min_height = 100,
-                            normalize_intensities = args.normalize_intensities)
-                        preprocessor(bscans, [segmentation_directory_1, segmentation_directory_2],
-                                     preprocessed_dir)
+                # saving the volume
+                img = nib.Nifti1Image(volume, np.eye(4))
+                nib.save(img, os.path.join(args.volume_dir, volume_name + '.nii.gz'))
 
-                        # resizing preprocessed images
-                        volume = resize_images(args, selected_base_names, preprocessed_dir,
-                                               exam_image_dir, True)
-
-                    else:
-
-                        # resizing images
-                        volume = resize_images(args, selected_base_names, eye_exam, exam_image_dir)
-
-                    volume = np.asarray(volume)
-
-                    # saving the volume
-                    img = nib.Nifti1Image(volume, np.eye(4))
-                    nib.save(img, os.path.join(args.volume_dir, volume_name + '.nii.gz'))
-
-                    eye_exam_id += 1
-                    num_exams += 1
-                if eye_exam_id > 0:
-                    patient_id += 1
+                eye_exam_id += 1
+                num_exams += 1
+            if eye_exam_id > 0:
+                patient_id += 1
 
     # summary
     with open('conversion-summary.yml', 'w') as summary:
@@ -235,8 +200,6 @@ def main():
         summary.write('num_patients: {}\n'.format(patient_id))
         print('{} eye exams found.'.format(num_exams))
         summary.write('num_eye_exams: {}\n'.format(num_exams))
-        print('Label histogram: {}'.format(dict(num_labels)))
-        summary.write('label_histogram: {}\n'.format(dict(num_labels)))
 
 
 if __name__ == "__main__":
