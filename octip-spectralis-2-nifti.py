@@ -103,7 +103,7 @@ def main():
         localizer1, localizer2 = None, None
 
     # loop over patients
-    patient_id, num_exams = 0, 0
+    num_patients, num_exams = 0, 0
     for main_dir in args.input_dirs:
         for patient in glob.glob(os.path.join(main_dir, '*')):
             xml_files = glob.glob(os.path.join(patient, '**', '*.xml'), recursive = True)
@@ -192,12 +192,12 @@ def main():
                 eye_exam_id += 1
                 num_exams += 1
             if eye_exam_id > 0:
-                patient_id += 1
+                num_patients += 1
 
     # summary
     with open('conversion-summary.yml', 'w') as summary:
-        print('{} patients found.'.format(patient_id))
-        summary.write('num_patients: {}\n'.format(patient_id))
+        print('{} patients found.'.format(num_patients))
+        summary.write('num_patients: {}\n'.format(num_patients))
         print('{} eye exams found.'.format(num_exams))
         summary.write('num_eye_exams: {}\n'.format(num_exams))
 
