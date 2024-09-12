@@ -10,7 +10,7 @@ __version__ = '1.1'
 from setuptools import setup
 
 setup(name = 'octip',
-      version = '1.0',
+      version = '1.1',
       license = 'GPL-v3',
       description = 'OCT Image Preprocessing',
       author = 'Gwenole Quellec',
