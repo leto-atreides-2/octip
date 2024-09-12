@@ -1,8 +1,7 @@
-# OCTIP: OCT Internship Package
+# OCTIP: OCT Image Preprocessing
 
-This package was initially developed for interns working on a dataset of Spectralis OCT images
-(in XML+PNG or XML+BMP format), hence the name. It essentially contains image preprocessing code.
-It includes a retina segmentation step that can be used for preprocessing.
+This package was developed for the analysis of Spectralis OCT images (in XML+PNG or XML+BMP format).
+It essentially contains image preprocessing code, optionally relying on a retina segmentation step.
 
 ## Installation
 
