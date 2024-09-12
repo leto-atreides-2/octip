@@ -11,8 +11,8 @@ from setuptools import setup
 
 setup(name = 'octip',
       version = '1.0',
-      license = 'Proprietary',
-      description = 'OCT Internship Package',
+      license = 'GPL-v3',
+      description = 'OCT Image Preprocessing',
       author = 'Gwenole Quellec',
       author_email = 'gwenole.quellec@inserm.fr',
       packages = ['octip'],
